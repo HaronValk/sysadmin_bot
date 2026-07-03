@@ -1,0 +1,13 @@
+[Unit] 
+Description=Системный администратор - бот-учитель 
+After=network.target 
+ 
+[Service] 
+User=root 
+WorkingDirectory=/root/sysadmin_bot 
+ExecStart=/root/sysadmin_bot/venv/bin/python /root/sysadmin_bot/bot.py 
+Restart=always 
+RestartSec=10 
+ 
+[Install] 
+WantedBy=multi-user.target 
