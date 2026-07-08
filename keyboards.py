@@ -63,11 +63,18 @@ def lesson_keyboard(lid, uid, part=1, total=1):
     rows.append([InlineKeyboardButton("📝 Задание", callback_data=f"practice_{lid}")])
 
     # Строка 5: Проект (если есть шаг)
+    from db import get_project_track
+
+    # В функции lesson_keyboard:
+    track = get_project_track(uid)
     if LESSONS[lid].get("project_step_ru") or LESSONS[lid].get("project_step_global"):
         rows.append(
             [
                 InlineKeyboardButton(
-                    "🏗️ Проект", web_app=WebAppInfo(url=f"{MINI_APP_URL}/project/{lid}")
+                    "🏗️ Проект",
+                    web_app=WebAppInfo(
+                        url=f"{MINI_APP_URL}/project/{lid}?track={track}"
+                    ),
                 )
             ]
         )

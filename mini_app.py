@@ -617,51 +617,29 @@ PROJECT_TEMPLATE = r"""<!DOCTYPE html>
 </html>"""
 
 
-@web_app.route("/lesson/<int:lid>")
-def lesson_page(lid):
-    content = get_cached_lesson(lid)
-    if not content:
-        abort(404)
-    lesson = LESSONS[lid]
-    prev_id = lid - 1 if lid > 1 else None
-    next_id = lid + 1 if lid < TOTAL_LESSONS else None
-    prev_link = (
-        f'<a href="/lesson/{prev_id}">⬅️ Назад</a>'
-        if prev_id
-        else '<span class="disabled">⬅️ Назад</span>'
-    )
-    next_link = (
-        f'<a href="/lesson/{next_id}">Вперёд ➡️</a>'
-        if next_id
-        else '<span class="disabled">Вперёд ➡️</span>'
-    )
-    practice = lesson.get("practice", "Задание отсутствует.")
-
-    html = TEMPLATE.replace("{{lid}}", str(lid))
-    html = html.replace("{{topic}}", lesson["topic"])
-    html = html.replace("{{summary}}", lesson["summary"])
-    html = html.replace("{{content}}", content)
-    html = html.replace("{{prev_link}}", prev_link)
-    html = html.replace("{{next_link}}", next_link)
-    html = html.replace("{{practice_text}}", practice)
-    return html
-
-
 @web_app.route("/project/<int:lid>")
 def project_page(lid):
     lesson = LESSONS[lid]
-    raw_step = (
-        lesson.get("project_step_ru")
-        or lesson.get("project_step_global")
-        or "Для этого урока нет шага проекта."
-    )
+    track = request.args.get("track", "ru")
 
-    # Разбиваем на блоки кода и обычный текст
+    if track == "global":
+        raw_step = (
+            lesson.get("project_step_global")
+            or lesson.get("project_step_ru")
+            or "Для этого урока нет шага проекта."
+        )
+    else:
+        raw_step = (
+            lesson.get("project_step_ru")
+            or lesson.get("project_step_global")
+            or "Для этого урока нет шага проекта."
+        )
+
+    # Вся остальная логика (разбивка на ```, форматирование) остаётся без изменений
     parts = re.split(r"(```.*?```)", raw_step, flags=re.DOTALL)
     formatted_parts = []
     for part in parts:
         if part.startswith("```") and part.endswith("```"):
-            # Блок кода — оборачиваем в <pre><code>
             content = part[3:-3].strip()
             lines = content.split("\n", 1)
             if len(lines) > 1 and not lines[0].strip().startswith(" "):
@@ -670,17 +648,12 @@ def project_page(lid):
                 code = content
             formatted_parts.append(f"<pre><code>{code}</code></pre>")
         else:
-            # Обычный текст — преобразуем markdown в HTML
             text = part
-            # Убираем первый заголовок ## Шаг X (дублируется с названием страницы)
             text = re.sub(
                 r"^##\s*Шаг\s*\d+[.:]\s*.+?\n", "", text, count=1, flags=re.MULTILINE
             )
-            # Заголовки ##
             text = re.sub(r"^## (.+)$", r"<h2>\1</h2>", text, flags=re.MULTILINE)
-            # Жирный **текст**
             text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-            # Списки (строки, начинающиеся с -)
             lines = text.split("\n")
             in_list = False
             result = []
@@ -699,12 +672,10 @@ def project_page(lid):
             if in_list:
                 result.append("</ul>")
             text = "\n".join(result)
-            # Переносы строк
             text = text.replace("\n", "<br>")
             formatted_parts.append(text)
     formatted_step = "".join(formatted_parts)
 
-    # Прогресс и навигация
     total_steps = sum(
         1
         for l in LESSONS.values()
@@ -725,12 +696,12 @@ def project_page(lid):
             break
 
     prev_project_link = (
-        f'<a href="/project/{prev_project}">⬅️ Пред. шаг</a>'
+        f'<a href="/project/{prev_project}?track={track}">⬅️ Пред. шаг</a>'
         if prev_project
         else '<span class="disabled" style="flex:1;text-align:center;padding:10px;color:#4a4f66">⬅️ Пред. шаг</span>'
     )
     next_project_link = (
-        f'<a href="/project/{next_project}">След. шаг ➡️</a>'
+        f'<a href="/project/{next_project}?track={track}">След. шаг ➡️</a>'
         if next_project
         else '<span class="disabled" style="flex:1;text-align:center;padding:10px;color:#4a4f66">След. шаг ➡️</span>'
     )
