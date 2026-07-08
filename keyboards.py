@@ -24,6 +24,7 @@ def main_keyboard():
 
 def lesson_keyboard(lid, uid, part=1, total=1):
     rows = []
+    # Строка 1: Далее + WebApp
     row1 = []
     if total > 1 and part < total:
         row1.append(
@@ -37,6 +38,7 @@ def lesson_keyboard(lid, uid, part=1, total=1):
     if row1:
         rows.append(row1)
 
+    # Строка 2: Назад / Вперёд
     row2 = []
     if lid > 1:
         row2.append(InlineKeyboardButton("⬅️ Назад", callback_data=f"prev_{lid-1}"))
@@ -45,6 +47,7 @@ def lesson_keyboard(lid, uid, part=1, total=1):
     if row2:
         rows.append(row2)
 
+    # Строка 3: Избранное + Заметки
     row3 = []
     fav = is_favorite(uid, lid)
     row3.append(
@@ -55,7 +58,20 @@ def lesson_keyboard(lid, uid, part=1, total=1):
     )
     row3.append(InlineKeyboardButton("📒 Заметки", callback_data=f"note_{lid}"))
     rows.append(row3)
+
+    # Строка 4: Задание
     rows.append([InlineKeyboardButton("📝 Задание", callback_data=f"practice_{lid}")])
+
+    # Строка 5: Проект (если есть шаг)
+    if LESSONS[lid].get("project_step_ru") or LESSONS[lid].get("project_step_global"):
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    "🏗️ Проект", web_app=WebAppInfo(url=f"{MINI_APP_URL}/project/{lid}")
+                )
+            ]
+        )
+
     return InlineKeyboardMarkup(rows)
 
 

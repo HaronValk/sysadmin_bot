@@ -20,13 +20,18 @@ from lessons_loader import TOTAL_LESSONS
 from keyboards import list_keyboard, lesson_keyboard
 from utils import strip_html, split_content
 from handlers.start import start
-from handlers.lessons import show_lesson, next_lesson, show_practice
-from handlers.plan import plan, favorites, completed as show_completed
+from handlers.lessons import (
+    show_lesson,
+    next_lesson,
+    show_practice,
+    show_project_step,
+    handle_project_command,
+)
+from handlers.plan import plan, favorites, completed
 from handlers.notes import note_command
 from handlers.tokens import tokens
 from handlers.ask import ask
 from mini_app import start as start_miniapp
-from lessons_loader import LESSONS
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -48,6 +53,7 @@ async def handle_callback(update, context):
         _, lid, part = data.split("_")
         lid, part = int(lid), int(part)
         from db import get_cached_lesson
+        from lessons_loader import LESSONS
 
         content = get_cached_lesson(lid)
         lesson = LESSONS[lid]
@@ -78,6 +84,12 @@ async def handle_callback(update, context):
         await q.message.reply_text(
             f"📒 Заметки к уроку {lid}:\n/note добавить <текст>\n/note список\n/note удалить <id>"
         )
+    elif data.startswith("practice_"):
+        lid = int(data.split("_")[1])
+        await show_practice(q, lid)
+    elif data.startswith("project_"):
+        lid = int(data.split("_")[1])
+        await show_project_step(q, lid)
     elif "_page_" in data or data.startswith("plan_") or data.startswith("completed_"):
         prefix, page_str = data.rsplit("_", 1)
         page = int(page_str)
@@ -104,11 +116,6 @@ async def handle_callback(update, context):
             )
         except Exception as e:
             logger.warning(f"Legacy pagination error: {e}")
-    elif data.startswith("practice_"):
-        lid = int(data.split("_")[1])
-        from handlers.lessons import show_practice
-
-        await show_practice(q, lid)
 
 
 async def handle_message(update, context):
@@ -126,7 +133,7 @@ async def handle_message(update, context):
     elif text == "⭐ Избранное":
         await favorites(update, context)
     elif text == "📚 Пройденные":
-        await show_completed(update, context)
+        await completed(update, context)
     elif text == "📋 План":
         await plan(update, context)
     elif text == "💰 Токены":
@@ -152,6 +159,7 @@ def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("note", note_command))
+    app.add_handler(CommandHandler("project", handle_project_command))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     logger.info(f"Бот запущен. Уроков: {TOTAL_LESSONS}")

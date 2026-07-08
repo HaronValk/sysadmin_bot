@@ -10,6 +10,8 @@ LESSONS = {
         "summary": l["summary"],
         "keywords": l["keywords"],
         "practice": l.get("practice", ""),
+        "project_step_ru": l.get("project_step_ru", ""),
+        "project_step_global": l.get("project_step_global", ""),
     }
     for i, l in enumerate(_raw)
 }
